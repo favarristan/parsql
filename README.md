@@ -4,9 +4,9 @@ POC in Python based on basics about SQL Injection.
 
 # Installation
 
-<code>pip install lxml</code>
-<code>pip install BeautifulSoup4</code>
-<code>pip install requests</code>
+<code>pip install lxml</code><br>
+<code>pip install BeautifulSoup4</code><br>
+<code>pip install requests</code><br>
 
 # Usage
 
