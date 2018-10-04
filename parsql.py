@@ -1,6 +1,7 @@
 # https://github.com/favarristan/parsql/
 
 from urlparse import urlparse
+from collections import OrderedDict
 from bs4 import BeautifulSoup
 from pprint import pprint
 import requests, sys, difflib, array, re, argparse
@@ -35,6 +36,7 @@ def order( url, num ):
 
 # Getting an exploitable column
 def cual( url, num):
+    x = 0
     stop  = '0'
     lista = '0'
     parts = urlparse(url)
@@ -253,6 +255,7 @@ def igual( index ):
 
 # Search between 'middle' numbers
 def mitad(urlbase):
+    midpoint = 0
     first = 1
     last  = 100
     url1  = order(urlbase, first)
